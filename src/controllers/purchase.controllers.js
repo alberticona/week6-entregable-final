@@ -1,44 +1,49 @@
 const catchError = require('../utils/catchError');
 const Purchase = require('../models/Purchase');
+const Cart = require('../models/Cart');
+const Product = require('../models/Product');
+const Category = require('../models/Category');
 
-const getAll = catchError(async(req, res) => {
-    const results = await Purchase.findAll();
-    return res.json(results);
+const getAll = catchError(async (req, res) => {
+    const userId = req.user.id
+    const result = await Purchase.findAll({
+        where: { userId },
+        include: [
+        {
+            model: Product,
+            attributes: { exclude: ["createdAt", "updatedAt"] },
+            include: [
+            {
+            model: Category,
+            attributes: ["name"]
+            },
+        ]
+    }
+    ]
+})
+    return res.json(result)
 });
 
-const create = catchError(async(req, res) => {
-    const result = await Purchase.create(req.body);
-    return res.status(201).json(result);
-});
+const create = catchError(async (req, res) => {
+    const userId = req.user.id
+    const cart = await Cart.findAll({
+        where: { userId },
+        raw: true,
+        attributes: ['quantity', 'userId', 'productId']
+    })
 
-const getOne = catchError(async(req, res) => {
-    const { id } = req.params;
-    const result = await Purchase.findByPk(id);
-    if(!result) return res.sendStatus(404);
-    return res.json(result);
-});
+    // console.log(cart);
 
-const remove = catchError(async(req, res) => {
-    const { id } = req.params;
-    const result = await Purchase.destroy({ where: {id} });
-    if(!result) return res.sendStatus(404);
-    return res.sendStatus(204);
-});
+    if (!cart) return res.sendStatus(404)
+    const result = await Purchase.bulkCreate(cart)
+    if (!result) return res.sendStatus(404)
 
-const update = catchError(async(req, res) => {
-    const { id } = req.params;
-    const result = await Purchase.update(
-        req.body,
-        { where: {id}, returning: true }
-    );
-    if(result[0] === 0) return res.sendStatus(404);
-    return res.json(result[1][0]);
-});
+    await Cart.destroy({ where: { userId } })
+
+    return res.status(201).json(result)
+})
 
 module.exports = {
     getAll,
-    create,
-    getOne,
-    remove,
-    update
+    create
 }
