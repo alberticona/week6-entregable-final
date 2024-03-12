@@ -2,6 +2,7 @@ const catchError = require('../utils/catchError');
 const Cart = require('../models/Cart');
 const Product = require('../models/Product');
 const Category = require('../models/Category');
+const ProductImg = require('../models/ProductImg');
 
 const getAll = catchError(async (req, res) => {
     const userId = req.user.id
@@ -58,7 +59,7 @@ const create = catchError(async(req, res) => {
     const userId = req.user.id
     const { quantity, productId } = req.body
     const newBody = { userId, quantity, productId }
-    const result = await Cart.create(req.body);
+    const result = await Cart.create(newBody);
     return res.status(201).json(result);
 });
 
@@ -69,8 +70,6 @@ const remove = catchError(async (req, res) => {
     if (!result) return res.sendStatus(404)
     return res.sendStatus(204);
 });
-
-
 
 const update = catchError(async (req, res) => {
     const userId = req.user.id
